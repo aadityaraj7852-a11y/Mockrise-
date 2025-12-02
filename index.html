@@ -1,8 +1,9 @@
-<!doctype html>
+</body>
+</ht<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>MCQ Table → DOCX (Yellow Right Column)</title>
+<title>MCQ → DOCX (Kruti Dev + AutoSave)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body{font-family: Arial; margin:14px}
@@ -10,15 +11,13 @@
   .col{flex:1; min-width:320px; border:1px solid #ddd; padding:12px; border-radius:6px}
   input, textarea, select { width:100%; padding:8px; margin:6px 0; box-sizing:border-box; }
   button{padding:10px 14px; margin-right:8px; background:#0b7a3e; color:#fff; border:0; border-radius:6px; cursor:pointer}
-  .muted{color:#666; font-size:13px}
   .preview-table{width:100%; border-collapse:collapse; margin-bottom:8px}
   .preview-table td{border:1px solid #888; padding:6px; vertical-align:top}
 </style>
 </head>
 <body>
 
-<h2>MCQ → DOCX (Yellow-right / White-left table)</h2>
-<p class="muted">हर प्रश्न एक table — left = field name (white), right = value (yellow). Export → DOCX</p>
+<h2>MCQ → DOCX (Kruti Dev Hindi + Auto Save)</h2>
 
 <div class="wrap">
   <div class="col">
@@ -26,25 +25,19 @@
     <input id="module" placeholder="Hindi">
 
     <label>Question</label>
-    <textarea id="question" rows="3" placeholder="Question statement"></textarea>
+    <textarea id="question" rows="3"></textarea>
 
-    <label>Option A</label><input id="optA" placeholder="Option A">
-    <label>Option B</label><input id="optB" placeholder="Option B">
-    <label>Option C</label><input id="optC" placeholder="Option C">
-    <label>Option D</label><input id="optD" placeholder="Option D">
+    <label>Option A</label><input id="optA">
+    <label>Option B</label><input id="optB">
+    <label>Option C</label><input id="optC">
+    <label>Option D</label><input id="optD">
 
-    <label>Answer</label><input id="answer" placeholder="D">
+    <label>Answer</label><input id="answer">
 
-    <label>Solution</label><textarea id="solution" rows="3" placeholder="Solution"></textarea>
+    <label>Solution</label><textarea id="solution" rows="3"></textarea>
 
-    <div style="display:flex; gap:8px">
-      <div style="flex:1">
-        <label>Positive Marks</label><input id="pm" value="1">
-      </div>
-      <div style="flex:1">
-        <label>Negative Marks</label><input id="nm" value="0.6">
-      </div>
-    </div>
+    <label>Positive Marks</label><input id="pm" value="1">
+    <label>Negative Marks</label><input id="nm" value="0.6">
 
     <label>Language</label>
     <select id="language">
@@ -59,348 +52,346 @@
 
     <hr>
 
-    <div>
-      <button id="exportBtn" style="background:#0066cc">Export DOCX (tables)</button>
-      <span class="muted"> → Desktop recommended</span>
-    </div>
+    <button id="exportBtn" style="background:#0066cc">Export DOCX</button>
   </div>
 
   <div class="col">
     <h3>Preview</h3>
-    <div id="previewArea" class="muted">No questions added.</div>
-    <div style="margin-top:10px">
-      <button id="removeLast" style="background:#c0392b">Remove Last</button>
-      <button id="resetAll" style="background:#7f8c8d">Clear All</button>
-    </div>
+    <div id="previewArea">No questions added.</div>
+
+    <button id="removeLast" style="background:#c0392b;margin-top:10px;">Remove Last</button>
+    <button id="resetAll" style="background:#7f8c8d;margin-top:10px;">Clear All</button>
   </div>
 </div>
 
 <script>
-/* ---------- State ---------- */
+/* ---------------- STATE + AUTOSAVE ---------------- */
 let questions = [];
 let qno = 1;
 
-/* ---------- Helpers ---------- */
-function val(id){ return document.getElementById(id).value.trim(); }
-function setVal(id,v){ document.getElementById(id).value = v || ''; }
-
-/* ---------- UI Handlers ---------- */
-document.getElementById('addBtn').addEventListener('click', () => {
-  const questionText = val('question');
-  if(!questionText){ alert('Question डालो'); return; }
-  const item = {
-    module: val('module') || 'Hindi',
-    questionno: qno++,
-    question: questionText,
-    type: 'mcq',
-    option: [val('optA'), val('optB'), val('optC'), val('optD')],
-    answer: val('answer').toUpperCase(),
-    solution: val('solution'),
-    pm: val('pm') || '1',
-    nm: val('nm') || '0',
-    language: val('language') || 'en'
-  };
-  questions.push(item);
+if(localStorage.getItem("mcqData")){
+  const saved = JSON.parse(localStorage.getItem("mcqData"));
+  questions = saved.questions;
+  qno = saved.qno;
   renderPreview();
-  clearFields(false);
-});
-
-document.getElementById('clearBtn').addEventListener('click', ()=> clearFields(true));
-document.getElementById('removeLast').addEventListener('click', ()=> {
-  if(questions.length===0) return alert('No questions to remove');
-  if(!confirm('Remove last question?')) return;
-  questions.pop();
-  qno = questions.length ? (questions[questions.length-1].questionno + 1) : 1;
-  renderPreview();
-});
-document.getElementById('resetAll').addEventListener('click', ()=> {
-  if(!confirm('Remove all questions?')) return;
-  questions = []; qno = 1; renderPreview();
-});
-
-function clearFields(all=true){
-  if(all) setVal('module','');
-  setVal('question','');
-  setVal('optA',''); setVal('optB',''); setVal('optC',''); setVal('optD','');
-  setVal('answer',''); setVal('solution','');
-  setVal('pm','1'); setVal('nm','0.6');
 }
 
-/* ---------- Preview ---------- */
-function renderPreview(){
-  const area = document.getElementById('previewArea');
-  if(questions.length===0){ area.innerHTML = '<div class="muted">No questions added.</div>'; return; }
-  area.innerHTML = '';
-  questions.forEach(q=>{
-    const tbl = document.createElement('table');
-    tbl.className = 'preview-table';
-    tbl.style.borderCollapse = 'collapse';
+function saveState(){
+  localStorage.setItem("mcqData", JSON.stringify({questions, qno}));
+}
 
-    function addRow(name, value){
-      const tr = document.createElement('tr');
-      const td1 = document.createElement('td');
-      td1.textContent = name;
-      td1.style.background = 'white';
-      td1.style.width = '120px';
-      td1.style.fontWeight = '600';
-      const td2 = document.createElement('td');
-      td2.textContent = value;
-      td2.style.background = '#ffe39c';
-      tr.appendChild(td1); tr.appendChild(td2);
+function val(id){ return document.getElementById(id).value.trim(); }
+function setVal(id,v){ document.getElementById(id).value = v || ""; }
+
+/* ---------------- ADD QUESTION ---------------- */
+document.getElementById('addBtn').onclick = ()=>{
+  if(!val("question")){ alert("Question डाल देना भाई"); return; }
+
+  const item = {
+    module: val("module"),
+    questionno: qno++,
+    question: val("question"),
+    type: "mcq",
+    option: [val("optA"), val("optB"), val("optC"), val("optD")],
+    answer: val("answer"),
+    solution: val("solution"),
+    pm: val("pm"),
+    nm: val("nm"),
+    language: val("language")
+  };
+
+  questions.push(item);
+  saveState();
+  renderPreview();
+
+  clearFields();
+};
+
+function clearFields(){
+  setVal("question","");
+  setVal("optA",""); setVal("optB","");
+  setVal("optC",""); setVal("optD","");
+  setVal("answer",""); setVal("solution","");
+}
+
+/* ---------------- PREVIEW ---------------- */
+function renderPreview(){
+  const area=document.getElementById("previewArea");
+  area.innerHTML="";
+
+  if(questions.length==0){
+    area.innerHTML="No questions added.";
+    return;
+  }
+
+  questions.forEach(q=>{
+    const tbl=document.createElement("table");
+    tbl.className="preview-table";
+
+    function addRow(name,value){
+      const tr=document.createElement("tr");
+      const td1=document.createElement("td");
+      const td2=document.createElement("td");
+      td1.textContent=name;
+      td1.style.background="white";
+      td1.style.fontWeight="600";
+      td2.textContent=value;
+      td2.style.background="#ffe39c";
+      tr.appendChild(td1);
+      tr.appendChild(td2);
       tbl.appendChild(tr);
     }
 
-    addRow('Module', q.module);
-    addRow('questionno', q.questionno);
-    addRow('Question', q.question);
-    addRow('Type', q.type);
-    addRow('option', q.option[0]||'');
-    addRow('option', q.option[1]||'');
-    addRow('option', q.option[2]||'');
-    addRow('option', q.option[3]||'');
-    addRow('answer', q.answer||'');
-    addRow('Solution', q.solution||'');
-    addRow('Positive Marks', q.pm);
-    addRow('Negative Marks', q.nm);
-    addRow('language', q.language||'en');
+    addRow("Module",q.module);
+    addRow("questionno",q.questionno);
+    addRow("Question",q.question);
+    addRow("Type",q.type);
+    addRow("option",q.option[0]);
+    addRow("option",q.option[1]);
+    addRow("option",q.option[2]);
+    addRow("option",q.option[3]);
+    addRow("answer",q.answer);
+    addRow("Solution",q.solution);
+    addRow("Positive Marks",q.pm);
+    addRow("Negative Marks",q.nm);
+    addRow("language",q.language);
 
     area.appendChild(tbl);
   });
 }
 
-/* ---------- XML helpers ---------- */
-function xmlEscape(s){
-  if(s==null) return '';
-  return s.toString()
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&apos;');
+/* ---------------- REMOVE LAST ---------------- */
+document.getElementById("removeLast").onclick=()=>{
+  if(questions.length===0) return;
+  questions.pop();
+  qno = questions.length ? questions[questions.length-1].questionno+1 : 1;
+  saveState();
+  renderPreview();
+};
+
+/* ---------------- RESET ALL ---------------- */
+document.getElementById("resetAll").onclick=()=>{
+  if(!confirm("सारे questions हटाने हैं?")) return;
+  questions=[];
+  qno=1;
+  saveState();
+  renderPreview();
+};
+
+/* ---------------- XML ESCAPE ---------------- */
+function x(s){
+  if(!s) return "";
+  return s.replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;");
 }
 
-/* Build Word table rows (two cells per row). Right cell has shading = FFE39C (light yellow) */
-function buildQuestionTableXml(q){
-  const rows = [];
-  function row(name, value){
-    return `<w:tr>
-      <w:tc>
-        <w:tcPr>
-          <w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/>
-          <w:tcBorders>
-            <w:top w:val="single" w:sz="4"/>
-            <w:left w:val="single" w:sz="4"/>
-            <w:bottom w:val="single" w:sz="4"/>
-            <w:right w:val="single" w:sz="4"/>
-          </w:tcBorders>
-        </w:tcPr>
-        <w:p><w:r><w:t>${xmlEscape(name)}</w:t></w:r></w:p>
-      </w:tc>
+/* ---------------- TABLE ROW (WITH KRUTI DEV SUPPORT) ---------------- */
+function makeRow(name,value,lang){
+  const fontTag = lang==="hi"
+    ? `<w:rPr><w:rFonts w:ascii="Kruti Dev 010" w:hAnsi="Kruti Dev 010" w:cs="Kruti Dev 010"/></w:rPr>`
+    : ``;
 
-      <w:tc>
-        <w:tcPr>
-          <w:shd w:val="clear" w:color="auto" w:fill="FFE39C"/>
-          <w:tcBorders>
-            <w:top w:val="single" w:sz="4"/>
-            <w:left w:val="single" w:sz="4"/>
-            <w:bottom w:val="single" w:sz="4"/>
-            <w:right w:val="single" w:sz="4"/>
-          </w:tcBorders>
-        </w:tcPr>
-        <w:p><w:r><w:t>${xmlEscape(value)}</w:t></w:r></w:p>
-      </w:tc>
-    </w:tr>`;
-  }
+  return `
+<w:tr>
+  <w:tc>
+    <w:tcPr>
+      <w:shd w:fill="FFFFFF"/>
+      <w:tcBorders>
+        <w:top w:val="single" w:sz="4"/>
+        <w:left w:val="single" w:sz="4"/>
+        <w:bottom w:val="single" w:sz="4"/>
+        <w:right w:val="single" w:sz="4"/>
+      </w:tcBorders>
+    </w:tcPr>
+    <w:p><w:r><w:t>${x(name)}</w:t></w:r></w:p>
+  </w:tc>
 
-  rows.push(row('Module', q.module));
-  rows.push(row('questionno', q.questionno));
-  rows.push(row('Question', q.question));
-  rows.push(row('Type', q.type));
-  rows.push(row('option', q.option[0]||''));
-  rows.push(row('option', q.option[1]||''));
-  rows.push(row('option', q.option[2]||''));
-  rows.push(row('option', q.option[3]||''));
-  rows.push(row('answer', q.answer||''));
-  rows.push(row('Solution', q.solution||''));
-  rows.push(row('Positive Marks', q.pm||''));
-  rows.push(row('Negative Marks', q.nm||''));
-  rows.push(row('language', q.language||''));
+  <w:tc>
+    <w:tcPr>
+      <w:shd w:fill="FFE39C"/>
+      <w:tcBorders>
+        <w:top w:val="single" w:sz="4"/>
+        <w:left w:val="single" w:sz="4"/>
+        <w:bottom w:val="single" w:sz="4"/>
+        <w:right w:val="single" w:sz="4"/>
+      </w:tcBorders>
+    </w:tcPr>
 
+    <w:p><w:r>${fontTag}<w:t>${x(value)}</w:t></w:r></w:p>
+  </w:tc>
+</w:tr>`;
+}
+
+/* ---------------- BUILD WORD TABLE ---------------- */
+function makeQuestionTable(q){
   return `<w:tbl>
-    <w:tblPr>
-      <w:tblBorders>
-        <w:top w:val="single" w:sz="6"/>
-        <w:left w:val="single" w:sz="6"/>
-        <w:right w:val="single" w:sz="6"/>
-        <w:bottom w:val="single" w:sz="6"/>
-        <w:insideH w:val="single" w:sz="6"/>
-        <w:insideV w:val="single" w:sz="6"/>
-      </w:tblBorders>
-    </w:tblPr>
-    ${rows.join('\n')}
+    <w:tblPr><w:tblBorders>
+      <w:top w:val="single" w:sz="6"/>
+      <w:left w:val="single" w:sz="6"/>
+      <w:right w:val="single" w:sz="6"/>
+      <w:bottom w:val="single" w:sz="6"/>
+      <w:insideH w:val="single" w:sz="6"/>
+      <w:insideV w:val="single" w:sz="6"/>
+    </w:tblBorders></w:tblPr>
+    
+    ${makeRow("Module",q.module,q.language)}
+    ${makeRow("questionno",q.questionno,q.language)}
+    ${makeRow("Question",q.question,q.language)}
+    ${makeRow("Type",q.type,q.language)}
+    ${makeRow("option",q.option[0],q.language)}
+    ${makeRow("option",q.option[1],q.language)}
+    ${makeRow("option",q.option[2],q.language)}
+    ${makeRow("option",q.option[3],q.language)}
+    ${makeRow("answer",q.answer,q.language)}
+    ${makeRow("Solution",q.solution,q.language)}
+    ${makeRow("Positive Marks",q.pm,q.language)}
+    ${makeRow("Negative Marks",q.nm,q.language)}
+    ${makeRow("language",q.language,q.language)}
   </w:tbl>`;
 }
 
-/* Build full document.xml by concatenating question tables (no gaps) */
-function buildDocumentXml(){
-  let body = '';
-  questions.forEach(q=>{
-    body += buildQuestionTableXml(q);
-  });
-  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+/* ---------------- BUILD DOCUMENT.XML ---------------- */
+function buildDocXml(){
+  let body="";
+  questions.forEach(q=> body += makeQuestionTable(q));
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body>
-    ${body}
-    <w:p/><w:sectPr/>
-  </w:body>
+<w:body>
+${body}
+<w:p/><w:sectPr/>
+</w:body>
 </w:document>`;
-  return docXml;
 }
 
-/* Minimal required parts for docx package */
-const contentTypesXml = `<?xml version="1.0" encoding="UTF-8"?>
+/* ---------------- ZIP BUILDER ---------------- */
+function makeZip(files){
+  function str2buf(s){ return new TextEncoder().encode(s); }
+  function u32(n){ return [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]; }
+
+  const crcTable=new Uint32Array(256);
+  for(let i=0;i<256;i++){
+    let c=i;
+    for(let j=0;j<8;j++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+    crcTable[i]=c>>>0;
+  }
+  function crc32(buf){
+    let crc=0^(-1);
+    for(let b of buf) crc=(crc>>>8)^crcTable[(crc^b)&255];
+    return (crc^(-1))>>>0;
+  }
+
+  const local=[], central=[];
+  let offset=0;
+
+  for(const name in files){
+    const data=str2buf(files[name]);
+    const fname=str2buf(name);
+    const crc=crc32(data);
+    const sz=data.length;
+
+    const h=new Uint8Array(30+fname.length);
+    h.set([0x50,0x4b,0x03,0x04],0);
+    h.set([20,0],4);
+    h.set([0,0],6);
+    h.set([0,0],8);
+    h.set([0,0,0,0],10);
+    h.set(u32(crc),14);
+    h.set(u32(sz),18);
+    h.set(u32(sz),22);
+    h.set([fname.length&255,(fname.length>>8)&255],26);
+    h.set(fname,30);
+
+    local.push(h,data);
+    const localStart=offset;
+    offset += h.length + data.length;
+
+    const c=new Uint8Array(46+fname.length);
+    c.set([0x50,0x4b,0x01,0x02],0);
+    c.set([20,0],4); c.set([20,0],6);
+    c.set([0,0],8); c.set([0,0],10);
+    c.set([0,0,0,0],12);
+    c.set(u32(crc),16);
+    c.set(u32(sz),20);
+    c.set(u32(sz),24);
+    c.set([fname.length&255,(fname.length>>8)&255],28);
+    c.set([0,0,0,0],30);
+    c.set([0,0,0,0],32);
+    c.set([0,0],36);
+    c.set([0,0,0,0],38);
+    c.set(u32(localStart),42);
+    c.set(fname,46);
+
+    central.push(c);
+  }
+
+  let totalLocal=0;
+  local.forEach(x=> totalLocal+=x.length);
+  let centralSize=0;
+  central.forEach(x=> centralSize+=x.length);
+
+  const out=new Uint8Array(totalLocal+centralSize+22);
+  let p=0;
+  local.forEach(x=>{ out.set(x,p); p+=x.length; });
+
+  const cdStart=p;
+  central.forEach(x=>{ out.set(x,p); p+=x.length; });
+
+  const cdSize=p-cdStart;
+  out.set([0x50,0x4b,0x05,0x06],p); p+=4;
+  out.set([0,0],p); p+=2;
+  out.set([0,0],p); p+=2;
+  const count=central.length;
+  out.set([count&255,(count>>8)&255],p); p+=2;
+  out.set([count&255,(count>>8)&255],p); p+=2;
+  out.set(u32(cdSize),p); p+=4;
+  out.set(u32(cdStart),p); p+=4;
+  out.set([0,0],p); p+=2;
+
+  return out;
+}
+
+/* ---------------- EXPORT DOCX ---------------- */
+document.getElementById("exportBtn").onclick=()=>{
+  if(questions.length===0){
+    alert("पहले question जोड़!");
+    return;
+  }
+
+  const doc = buildDocXml();
+
+  const files = {
+    "[Content_Types].xml":
+`<?xml version="1.0" encoding="UTF-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`;
+</Types>`,
 
-const relsRelsXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+    "_rels/.rels":
+`<?xml version="1.0"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`,
 
-const docRelsXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+    "word/_rels/document.xml.rels":
+`<?xml version="1.0"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`,
 
-/* ---------- ZIP builder (with CRC32 & central directory) ---------- */
-/* This implementation builds a valid ZIP that Word will accept */
-function makeZipBuffer(files){
-  function str2buf(s){ return new TextEncoder().encode(s); }
-  function uint32LE(n){ return [n & 0xff, (n>>8)&0xff, (n>>16)&0xff, (n>>24)&0xff]; }
-
-  const crcTable = (function(){
-    let c; const table = new Uint32Array(256);
-    for(let n=0;n<256;n++){
-      c = n;
-      for(let k=0;k<8;k++){
-        c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-      }
-      table[n] = c >>> 0;
-    }
-    return table;
-  })();
-
-  function crc32(buf){
-    let crc = 0 ^ (-1);
-    for(let i=0;i<buf.length;i++){
-      crc = (crc >>> 8) ^ crcTable[(crc ^ buf[i]) & 0xff];
-    }
-    return (crc ^ (-1)) >>> 0;
-  }
-
-  const localParts = [];
-  const centralParts = [];
-  let offset = 0;
-
-  for(const name in files){
-    const content = files[name];
-    const data = str2buf(content);
-    const fname = str2buf(name);
-    const crc = crc32(data);
-    const compSize = data.length, uncompSize = data.length;
-
-    // local file header
-    const lh = new Uint8Array(30 + fname.length);
-    lh.set([0x50,0x4b,0x03,0x04],0); // local file sig
-    lh.set([20,0],4); // version needed
-    lh.set([0,0],6); // gp bit flag
-    lh.set([0,0],8); // compression (0=store)
-    lh.set([0,0,0,0],10); // mod time/date
-    lh.set(uint32LE(crc),14);
-    lh.set(uint32LE(compSize),18);
-    lh.set(uint32LE(uncompSize),22);
-    lh.set([fname.length & 0xff, (fname.length>>8)&0xff],26);
-    lh.set(fname,30);
-
-    localParts.push({lh, data});
-    offset += lh.length + data.length;
-
-    // central directory header
-    const ch = new Uint8Array(46 + fname.length);
-    ch.set([0x50,0x4b,0x01,0x02],0);
-    ch.set([20,0],4); ch.set([20,0],6);
-    ch.set([0,0],8); ch.set([0,0],10);
-    ch.set([0,0,0,0],12);
-    ch.set(uint32LE(crc),16);
-    ch.set(uint32LE(compSize),20);
-    ch.set(uint32LE(uncompSize),24);
-    ch.set([fname.length & 0xff, (fname.length>>8)&0xff],28);
-    ch.set([0,0,0,0],30); ch.set([0,0,0,0],32);
-    ch.set([0,0],36); ch.set([0,0,0,0],38);
-    const relOff = offset - (lh.length + data.length);
-    ch.set(uint32LE(relOff),42);
-    ch.set(fname,46);
-
-    centralParts.push(ch);
-  }
-
-  // assemble
-  let totalLocal = 0;
-  localParts.forEach(it => totalLocal += it.lh.length + it.data.length);
-  let centralSize = 0; centralParts.forEach(c => centralSize += c.length);
-  const eocdSize = 22;
-  const out = new Uint8Array(totalLocal + centralSize + eocdSize);
-  let p = 0;
-
-  // local files
-  localParts.forEach(it => {
-    out.set(it.lh, p); p += it.lh.length;
-    out.set(it.data, p); p += it.data.length;
-  });
-
-  const cdStart = p;
-
-  // central dir
-  centralParts.forEach(c => { out.set(c, p); p += c.length; });
-
-  const cdSize = p - cdStart;
-
-  // EOCD
-  out.set([0x50,0x4b,0x05,0x06], p); p+=4;
-  out.set([0,0], p); p+=2; // disk numbers
-  out.set([0,0], p); p+=2;
-  const entries = centralParts.length;
-  out.set([ entries & 0xff, (entries>>8)&0xff ], p); p+=2;
-  out.set([ entries & 0xff, (entries>>8)&0xff ], p); p+=2;
-  out.set(uint32LE(cdSize), p); p+=4;
-  out.set(uint32LE(cdStart), p); p+=4;
-  out.set([0,0], p); p+=2;
-
-  return out.buffer;
-}
-
-/* ---------- Build DOCX blob and trigger download ---------- */
-function generateDocxBlob(){
-  const docXml = buildDocumentXml();
-  const files = {
-    "[Content_Types].xml": contentTypesXml,
-    "_rels/.rels": relsRelsXml,
-    "word/_rels/document.xml.rels": docRelsXml,
-    "word/document.xml": docXml
+    "word/document.xml": doc
   };
-  const zipBuf = makeZipBuffer(files);
-  return new Blob([zipBuf], {type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
-}
 
-document.getElementById('exportBtn').addEventListener('click', ()=>{
-  if(questions.length===0){ alert('पहले कम से कम एक प्रश्न जोड़ो'); return; }
-  const blob = generateDocxBlob();
+  const zipBytes = makeZip(files);
+  const blob = new Blob([zipBytes], {type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'mcq_export_tables.docx';
+
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="mcq_export_tables.docx";
   a.click();
-  setTimeout(()=> URL.revokeObjectURL(url), 5000);
-});
+
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+};
 </script>
 </body>
 </html>
