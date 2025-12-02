@@ -1,0 +1,269 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MCQ Table DOCX Generator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{font-family: Arial; margin:14px}
+  .wrap{display:flex; gap:12px; flex-wrap:wrap}
+  .col{flex:1; min-width:300px; border:1px solid #ddd; padding:12px; border-radius:6px}
+  input, textarea, select { width:100%; padding:8px; margin:6px 0; box-sizing:border-box; }
+  button{padding:10px 14px; margin-right:8px; background:#0b7a3e; color:#fff; border:0; border-radius:6px; cursor:pointer}
+  .preview-table td{border:1px solid #999; padding:6px}
+</style>
+</head>
+<body>
+
+<h2>MCQ → DOCX (Image-like Yellow/White Table)</h2>
+
+<div class="wrap">
+  <div class="col">
+    <label>Module</label>
+    <input id="module" placeholder="Hindi">
+
+    <label>Question</label>
+    <textarea id="question" rows="3"></textarea>
+
+    <label>Option A</label><input id="optA">
+    <label>Option B</label><input id="optB">
+    <label>Option C</label><input id="optC">
+    <label>Option D</label><input id="optD">
+
+    <label>Answer</label><input id="answer">
+
+    <label>Solution</label><textarea id="solution" rows="3"></textarea>
+
+    <label>Positive Marks</label><input id="pm" value="1">
+    <label>Negative Marks</label><input id="nm" value="0.6">
+
+    <label>Language</label>
+    <select id="language">
+      <option value="en">en</option>
+      <option value="hi">hi</option>
+    </select>
+
+    <button id="addBtn">Add</button>
+    <button id="exportBtn" style="background:#0066cc">Export DOCX</button>
+  </div>
+
+  <div class="col">
+    <h3>Preview</h3>
+    <div id="previewArea">No questions added</div>
+  </div>
+</div>
+
+<script>
+let questions = [];
+let qno = 1;
+
+function val(id){ return document.getElementById(id).value.trim(); }
+
+document.getElementById('addBtn').onclick = ()=>{
+  const q = {
+    module: val('module') || "Hindi",
+    questionno: qno++,
+    question: val('question'),
+    type: "mcq",
+    option: [ val('optA'), val('optB'), val('optC'), val('optD') ],
+    answer: val('answer'),
+    solution: val('solution'),
+    pm: val('pm'),
+    nm: val('nm'),
+    language: val('language')
+  };
+
+  questions.push(q);
+  renderPreview();
+}
+
+function renderPreview(){
+  const area = document.getElementById('previewArea');
+  area.innerHTML = "";
+
+  questions.forEach(q=>{
+    const tbl = document.createElement("table");
+    tbl.className = "preview-table";
+    tbl.style.borderCollapse = "collapse";
+    tbl.style.marginBottom = "4px";
+
+    function row(name,val){
+      const tr = document.createElement("tr");
+
+      const td1 = document.createElement("td");
+      td1.textContent = name;
+      td1.style.background = "white";
+
+      const td2 = document.createElement("td");
+      td2.textContent = val;
+      td2.style.background = "#ffe39c";
+
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      tbl.appendChild(tr);
+    }
+
+    row("Module", q.module);
+    row("questionno", q.questionno);
+    row("Question", q.question);
+    row("Type", q.type);
+    q.option.forEach(o=> row("option", o));
+    row("answer", q.answer);
+    row("Solution", q.solution);
+    row("Positive Marks", q.pm);
+    row("Negative Marks", q.nm);
+    row("language", q.language);
+
+    area.appendChild(tbl);
+  });
+}
+
+/* XML ESCAPE */
+function x(s){
+  if(!s) return "";
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+/* 👉 FINAL Word Table Builder — EXACT Image-like Yellow-Right/White-Left */
+function buildTableXML(q){
+  let rows = "";
+
+  function r(name,val){
+    rows += `
+<w:tr>
+  <w:tc>
+    <w:tcPr>
+      <w:shd w:fill="FFFFFF"/>
+      <w:tcBorders>
+        <w:top w:val="single" w:sz="6"/>
+        <w:left w:val="single" w:sz="6"/>
+        <w:right w:val="single" w:sz="6"/>
+        <w:bottom w:val="single" w:sz="6"/>
+      </w:tcBorders>
+    </w:tcPr>
+    <w:p><w:r><w:t>${x(name)}</w:t></w:r></w:p>
+  </w:tc>
+
+  <w:tc>
+    <w:tcPr>
+      <w:shd w:fill="FFE39C"/>
+      <w:tcBorders>
+        <w:top w:val="single" w:sz="6"/>
+        <w:left w:val="single" w:sz="6"/>
+        <w:right w:val="single" w:sz="6"/>
+        <w:bottom w:val="single" w:sz="6"/>
+      </w:tcBorders>
+    </w:tcPr>
+    <w:p><w:r><w:t>${x(val)}</w:t></w:r></w:p>
+  </w:tc>
+</w:tr>`;
+  }
+
+  r("Module", q.module);
+  r("questionno", q.questionno);
+  r("Question", q.question);
+  r("Type", q.type);
+  q.option.forEach(o=> r("option", o));
+  r("answer", q.answer);
+  r("Solution", q.solution);
+  r("Positive Marks", q.pm);
+  r("Negative Marks", q.nm);
+  r("language", q.language);
+
+  return `<w:tbl>
+    <w:tblPr>
+      <w:tblBorders>
+        <w:top w:val="single" w:sz="6"/>
+        <w:left w:val="single" w:sz="6"/>
+        <w:right w:val="single" w:sz="6"/>
+        <w:bottom w:val="single" w:sz="6"/>
+        <w:insideH w:val="single" w:sz="6"/>
+        <w:insideV w:val="single" w:sz="6"/>
+      </w:tblBorders>
+    </w:tblPr>
+    ${rows}
+  </w:tbl>`;
+}
+
+/* BUILD FULL DOC.XML */
+function buildDocXML(){
+  let body = "";
+  questions.forEach(q=>{
+    body += buildTableXML(q);
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+${body}
+</w:body>
+</w:document>`;
+}
+
+/* ZIP & EXPORT */
+document.getElementById('exportBtn').onclick=()=>{
+
+  if(questions.length==0){
+    alert("कम से कम 1 question जोड़!");
+    return;
+  }
+
+  const doc = buildDocXML();
+
+  const files = {
+    "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`,
+
+    "_rels/.rels": `<?xml version="1.0"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`,
+
+    "word/_rels/document.xml.rels": `<?xml version="1.0"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`,
+
+    "word/document.xml": doc
+  };
+
+  function str2buf(s){ return new TextEncoder().encode(s); }
+
+  /* simple ZIP builder */
+  const parts=[];
+  let offset=0;
+
+  for(const name in files){
+    const fileData=str2buf(files[name]);
+    const fileName=str2buf(name);
+
+    const header=new Uint8Array(30+fileName.length);
+    header.set([0x50,0x4b,0x03,0x04],0);
+    header.set([20,0],4);
+    header.set([0,0],6);
+    header.set([0,0],8);
+
+    const crc=0;
+    const size=fileData.length;
+
+    header.set([0,0,0,0],14);
+    header.set([size&255,(size>>8)&255,(size>>16)&255,(size>>24)&255],18);
+    header.set([size&255,(size>>8)&255,(size>>16)&255,(size>>24)&255],22);
+
+    header.set([fileName.length&255,(fileName.length>>8)&255],26);
+    header.set(fileName,30);
+
+    parts.push(header,fileData);
+  }
+
+  const blob=new Blob(parts,{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="mcq.docx";
+  a.click();
+}
+</script>
+
+</body>
+</html>
