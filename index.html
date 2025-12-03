@@ -2,405 +2,383 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>MCQ Table → DOCX (Yellow Right Column)</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Current Affairs Clean DOCX Export</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
-  body{font-family: Arial; margin:14px}
-  .wrap{display:flex; gap:12px; flex-wrap:wrap}
-  .col{flex:1; min-width:320px; border:1px solid #ddd; padding:12px; border-radius:6px}
-  input, textarea, select { width:100%; padding:8px; margin:6px 0; box-sizing:border-box; }
-  button{padding:10px 14px; margin-right:8px; background:#0b7a3e; color:#fff; border:0; border-radius:6px; cursor:pointer}
-  .muted{color:#666; font-size:13px}
-  .preview-table{width:100%; border-collapse:collapse; margin-bottom:8px}
-  .preview-table td{border:1px solid #888; padding:6px; vertical-align:top}
+body{
+  font-family:Arial;
+  margin:20px;
+  background:#f7f7f7;
+}
+.container{
+  max-width:750px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  border:1px solid #ddd;
+}
+label{font-weight:bold;margin-top:10px;display:block}
+input,textarea{
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+  border:1px solid #ccc;
+  border-radius:6px;
+}
+button{
+  padding:10px 14px;
+  border:0;
+  border-radius:6px;
+  background:#333;
+  color:white;
+  cursor:pointer;
+  margin-top:10px;
+}
+.icon-btn{
+  background:transparent;
+  border:0;
+  font-size:18px;
+  cursor:pointer;
+  color:#000;       /* <-- icons are BLACK now */
+}
+.preview img{
+  max-width:300px;
+  border:1px solid #ccc;
+  margin-top:10px;
+  border-radius:6px;
+}
+.entry-card{
+  border:1px solid #ccc;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px;
+  background:#fafafa;
+}
 </style>
 </head>
+
 <body>
+<div class="container">
 
-<h2>MCQ → DOCX (Yellow-right / White-left table)</h2>
-<p class="muted">हर प्रश्न एक table — left = field name (white), right = value (yellow). Export → DOCX</p>
+<h2>Current Affairs → Clean DOCX Export</h2>
 
-<div class="wrap">
-  <div class="col">
-    <label>Module</label>
-    <input id="module" placeholder="Hindi">
+<label>###categories</label>
+<input id="categories">
 
-    <label>Question</label>
-    <textarea id="question" rows="3" placeholder="Question statement"></textarea>
+<label>###states</label>
+<input id="states">
 
-    <label>Option A</label><input id="optA" placeholder="Option A">
-    <label>Option B</label><input id="optB" placeholder="Option B">
-    <label>Option C</label><input id="optC" placeholder="Option C">
-    <label>Option D</label><input id="optD" placeholder="Option D">
+<label>###lang (always hi)</label>
+<input id="lang" value="hi">
 
-    <label>Answer</label><input id="answer" placeholder="D">
+<label>###title (Hindi)</label>
+<input id="title">
 
-    <label>Solution</label><textarea id="solution" rows="3" placeholder="Solution"></textarea>
+<label>###banner (Optional)</label>
+<input type="file" id="bannerInput" accept="image/*">
 
-    <div style="display:flex; gap:8px">
-      <div style="flex:1">
-        <label>Positive Marks</label><input id="pm" value="1">
-      </div>
-      <div style="flex:1">
-        <label>Negative Marks</label><input id="nm" value="0.6">
-      </div>
-    </div>
+<div id="bannerPreview"></div>
 
-    <label>Language</label>
-    <select id="language">
-      <option value="en">en</option>
-      <option value="hi">hi</option>
-    </select>
+<label>###body (Hindi)</label>
+<textarea id="body" rows="6"></textarea>
 
-    <div style="margin-top:10px">
-      <button id="addBtn">Add Question</button>
-      <button id="clearBtn" style="background:#999">Clear Fields</button>
-    </div>
+<button onclick="addEntry()">Add Entry</button>
+<button onclick="exportDocx()">Export DOCX</button>
 
-    <hr>
+<h3>Entries</h3>
+<div id="entries"></div>
 
-    <div>
-      <button id="exportBtn" style="background:#0066cc">Export DOCX (tables)</button>
-      <span class="muted"> → Desktop recommended</span>
-    </div>
-  </div>
-
-  <div class="col">
-    <h3>Preview</h3>
-    <div id="previewArea" class="muted">No questions added.</div>
-    <div style="margin-top:10px">
-      <button id="removeLast" style="background:#c0392b">Remove Last</button>
-      <button id="resetAll" style="background:#7f8c8d">Clear All</button>
-    </div>
-  </div>
 </div>
 
 <script>
-/* ---------- State ---------- */
-let questions = [];
-let qno = 1;
+let entries = [];
 
-/* ---------- Helpers ---------- */
-function val(id){ return document.getElementById(id).value.trim(); }
-function setVal(id,v){ document.getElementById(id).value = v || ''; }
-
-/* ---------- UI Handlers ---------- */
-document.getElementById('addBtn').addEventListener('click', () => {
-  const questionText = val('question');
-  if(!questionText){ alert('Question डालो'); return; }
-  const item = {
-    module: val('module') || 'Hindi',
-    questionno: qno++,
-    question: questionText,
-    type: 'mcq',
-    option: [val('optA'), val('optB'), val('optC'), val('optD')],
-    answer: val('answer').toUpperCase(),
-    solution: val('solution'),
-    pm: val('pm') || '1',
-    nm: val('nm') || '0',
-    language: val('language') || 'en'
-  };
-  questions.push(item);
-  renderPreview();
-  clearFields(false);
-});
-
-document.getElementById('clearBtn').addEventListener('click', ()=> clearFields(true));
-document.getElementById('removeLast').addEventListener('click', ()=> {
-  if(questions.length===0) return alert('No questions to remove');
-  if(!confirm('Remove last question?')) return;
-  questions.pop();
-  qno = questions.length ? (questions[questions.length-1].questionno + 1) : 1;
-  renderPreview();
-});
-document.getElementById('resetAll').addEventListener('click', ()=> {
-  if(!confirm('Remove all questions?')) return;
-  questions = []; qno = 1; renderPreview();
-});
-
-function clearFields(all=true){
-  if(all) setVal('module','');
-  setVal('question','');
-  setVal('optA',''); setVal('optB',''); setVal('optC',''); setVal('optD','');
-  setVal('answer',''); setVal('solution','');
-  setVal('pm','1'); setVal('nm','0.6');
-}
-
-/* ---------- Preview ---------- */
-function renderPreview(){
-  const area = document.getElementById('previewArea');
-  if(questions.length===0){ area.innerHTML = '<div class="muted">No questions added.</div>'; return; }
-  area.innerHTML = '';
-  questions.forEach(q=>{
-    const tbl = document.createElement('table');
-    tbl.className = 'preview-table';
-    tbl.style.borderCollapse = 'collapse';
-
-    function addRow(name, value){
-      const tr = document.createElement('tr');
-      const td1 = document.createElement('td');
-      td1.textContent = name;
-      td1.style.background = 'white';
-      td1.style.width = '120px';
-      td1.style.fontWeight = '600';
-      const td2 = document.createElement('td');
-      td2.textContent = value;
-      td2.style.background = '#ffe39c';
-      tr.appendChild(td1); tr.appendChild(td2);
-      tbl.appendChild(tr);
-    }
-
-    addRow('Module', q.module);
-    addRow('questionno', q.questionno);
-    addRow('Question', q.question);
-    addRow('Type', q.type);
-    addRow('option', q.option[0]||'');
-    addRow('option', q.option[1]||'');
-    addRow('option', q.option[2]||'');
-    addRow('option', q.option[3]||'');
-    addRow('answer', q.answer||'');
-    addRow('Solution', q.solution||'');
-    addRow('Positive Marks', q.pm);
-    addRow('Negative Marks', q.nm);
-    addRow('language', q.language||'en');
-
-    area.appendChild(tbl);
+/* read image */
+function readFileData(input){
+  return new Promise(res=>{
+    if(!input.files || !input.files[0]) return res(null);
+    const f=input.files[0];
+    const r=new FileReader();
+    r.onload=()=>res({name:f.name,type:f.type,dataURL:r.result});
+    r.readAsDataURL(f);
   });
 }
 
-/* ---------- XML helpers ---------- */
-function xmlEscape(s){
-  if(s==null) return '';
-  return s.toString()
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&apos;');
+/* Add entry */
+async function addEntry(){
+  const cat=document.getElementById("categories").value.trim();
+  const st=document.getElementById("states").value.trim();
+  const lang=document.getElementById("lang").value.trim();
+  const title=document.getElementById("title").value.trim();
+  const body=document.getElementById("body").value.trim();
+  const banner=await readFileData(document.getElementById("bannerInput"));
+
+  const item={cat,st,lang,title,body,banner};
+  entries.push(item);
+  renderEntries();
+
+  document.getElementById("bannerInput").value="";
+  document.getElementById("bannerPreview").innerHTML="";
+  document.getElementById("title").value="";
+  document.getElementById("body").value="";
 }
 
-/* Build Word table rows (two cells per row). Right cell has shading = FFE39C (light yellow) */
-function buildQuestionTableXml(q){
-  const rows = [];
-  function row(name, value){
-    return `<w:tr>
-      <w:tc>
-        <w:tcPr>
-          <w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/>
-          <w:tcBorders>
-            <w:top w:val="single" w:sz="4"/>
-            <w:left w:val="single" w:sz="4"/>
-            <w:bottom w:val="single" w:sz="4"/>
-            <w:right w:val="single" w:sz="4"/>
-          </w:tcBorders>
-        </w:tcPr>
-        <w:p><w:r><w:t>${xmlEscape(name)}</w:t></w:r></w:p>
-      </w:tc>
+function renderEntries(){
+  const box=document.getElementById("entries");
+  box.innerHTML="";
 
-      <w:tc>
-        <w:tcPr>
-          <w:shd w:val="clear" w:color="auto" w:fill="FFE39C"/>
-          <w:tcBorders>
-            <w:top w:val="single" w:sz="4"/>
-            <w:left w:val="single" w:sz="4"/>
-            <w:bottom w:val="single" w:sz="4"/>
-            <w:right w:val="single" w:sz="4"/>
-          </w:tcBorders>
-        </w:tcPr>
-        <w:p><w:r><w:t>${xmlEscape(value)}</w:t></w:r></w:p>
-      </w:tc>
-    </w:tr>`;
+  entries.forEach((e,i)=>{
+    const card=document.createElement("div");
+    card.className="entry-card";
+
+    card.innerHTML+=`<b>${e.title}</b><br><small>${e.cat} | ${e.st}</small>`;
+
+    if(e.banner){
+      const im=document.createElement("img");
+      im.src=e.banner.dataURL;
+      im.style.maxWidth="150px";
+      card.appendChild(im);
+    }
+
+    card.innerHTML+=`
+      <div>
+        <button class="icon-btn" onclick="deleteEntry(${i})"><i class="fa fa-trash"></i></button>
+      </div>
+    `;
+
+    box.appendChild(card);
+  });
+}
+
+function deleteEntry(i){
+  entries.splice(i,1);
+  renderEntries();
+}
+
+/* ---------- DOCX Builder ---------- */
+
+/* xml escape */
+function x(s){
+  return String(s||'').replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+/* drawing xml */
+function makeDrawing(rId){
+return `
+<w:p><w:r><w:t></w:t></w:r></w:p>
+<w:p><w:r><w:drawing>
+<wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+<wp:extent cx="4500000" cy="3000000"/>
+<wp:docPr id="1" name="Banner"/>
+<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<pic:nvPicPr><pic:cNvPr id="0" name="img"/><pic:cNvPicPr/></pic:nvPicPr>
+<pic:blipFill>
+<a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${rId}"/>
+<a:stretch><a:fillRect/></a:stretch>
+</pic:blipFill>
+<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="4500000" cy="3000000"/></a:xfrm>
+<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+</pic:pic>
+</a:graphicData>
+</a:graphic>
+</wp:inline>
+</w:drawing></w:r></w:p>`;
+}
+
+/* build full document.xml */
+function buildDocXML(rmap){
+  let xml="";
+
+  entries.forEach((e,i)=>{
+
+    xml+=`<w:p><w:r><w:t>###currentAffair</w:t></w:r></w:p>
+<w:p><w:r><w:t>currentAffair</w:t></w:r></w:p>
+
+<w:p><w:r><w:t>###categories</w:t></w:r></w:p>
+<w:p><w:r><w:t>${x(e.cat)}</w:t></w:r></w:p>
+
+<w:p><w:r><w:t>###states</w:t></w:r></w:p>
+<w:p><w:r><w:t>${x(e.st)}</w:t></w:r></w:p>
+
+<w:p><w:r><w:t>###lang</w:t></w:r></w:p>
+<w:p><w:r><w:t>${x(e.lang)}</w:t></w:r></w:p>
+
+<w:p><w:r><w:t>###title</w:t></w:r></w:p>
+<w:p><w:r><w:t>${x(e.title)}</w:t></w:r></w:p>
+
+<w:p><w:r><w:t>###banner</w:t></w:r></w:p>
+<w:p><w:r><w:t></w:t></w:r></w:p>
+`;
+
+    if(rmap[i]) xml+=makeDrawing(rmap[i]);
+
+    xml+=`
+<w:p><w:r><w:t>###body</w:t></w:r></w:p>
+<w:p><w:r><w:t>${x(e.body)}</w:t></w:r></w:p>
+`;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<w:body>${xml}<w:sectPr/></w:body>
+</w:document>`;
+}
+
+/* ZIP builder (stable) */
+function buildZip(files){
+  const enc=new TextEncoder();
+
+  function toBytes(v){
+    if(v instanceof Uint8Array) return v;
+    return enc.encode(v);
   }
 
-  rows.push(row('Module', q.module));
-  rows.push(row('questionno', q.questionno));
-  rows.push(row('Question', q.question));
-  rows.push(row('Type', q.type));
-  rows.push(row('option', q.option[0]||''));
-  rows.push(row('option', q.option[1]||''));
-  rows.push(row('option', q.option[2]||''));
-  rows.push(row('option', q.option[3]||''));
-  rows.push(row('answer', q.answer||''));
-  rows.push(row('Solution', q.solution||''));
-  rows.push(row('Positive Marks', q.pm||''));
-  rows.push(row('Negative Marks', q.nm||''));
-  rows.push(row('language', q.language||''));
-
-  return `<w:tbl>
-    <w:tblPr>
-      <w:tblBorders>
-        <w:top w:val="single" w:sz="6"/>
-        <w:left w:val="single" w:sz="6"/>
-        <w:right w:val="single" w:sz="6"/>
-        <w:bottom w:val="single" w:sz="6"/>
-        <w:insideH w:val="single" w:sz="6"/>
-        <w:insideV w:val="single" w:sz="6"/>
-      </w:tblBorders>
-    </w:tblPr>
-    ${rows.join('\n')}
-  </w:tbl>`;
-}
-
-/* Build full document.xml by concatenating question tables (no gaps) */
-function buildDocumentXml(){
-  let body = '';
-  questions.forEach(q=>{
-    body += buildQuestionTableXml(q);
-  });
-  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body>
-    ${body}
-    <w:p/><w:sectPr/>
-  </w:body>
-</w:document>`;
-  return docXml;
-}
-
-/* Minimal required parts for docx package */
-const contentTypesXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`;
-
-const relsRelsXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
-
-const docRelsXml = `<?xml version="1.0" encoding="UTF-8"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
-
-/* ---------- ZIP builder (with CRC32 & central directory) ---------- */
-/* This implementation builds a valid ZIP that Word will accept */
-function makeZipBuffer(files){
-  function str2buf(s){ return new TextEncoder().encode(s); }
-  function uint32LE(n){ return [n & 0xff, (n>>8)&0xff, (n>>16)&0xff, (n>>24)&0xff]; }
-
-  const crcTable = (function(){
-    let c; const table = new Uint32Array(256);
-    for(let n=0;n<256;n++){
-      c = n;
-      for(let k=0;k<8;k++){
-        c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-      }
-      table[n] = c >>> 0;
-    }
-    return table;
-  })();
+  function u32(n){
+    return [n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+  }
 
   function crc32(buf){
-    let crc = 0 ^ (-1);
+    let c=~0;
     for(let i=0;i<buf.length;i++){
-      crc = (crc >>> 8) ^ crcTable[(crc ^ buf[i]) & 0xff];
+      c=(c>>>8)^table[(c^buf[i])&255];
     }
-    return (crc ^ (-1)) >>> 0;
+    return ~c>>>0;
   }
 
-  const localParts = [];
-  const centralParts = [];
-  let offset = 0;
+  if(!window.__zip_crc){
+    const t=new Uint32Array(256);
+    for(let i=0;i<256;i++){
+      let c=i;
+      for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+      t[i]=c>>>0;
+    }
+    window.__zip_crc=t;
+  }
+  const table=window.__zip_crc;
+
+  let local=[],central=[];
+  let offset=0;
 
   for(const name in files){
-    const content = files[name];
-    const data = str2buf(content);
-    const fname = str2buf(name);
-    const crc = crc32(data);
-    const compSize = data.length, uncompSize = data.length;
+    const data=toBytes(files[name]);
+    const fname=enc.encode(name);
+    const crc=crc32(data);
 
-    // local file header
-    const lh = new Uint8Array(30 + fname.length);
-    lh.set([0x50,0x4b,0x03,0x04],0); // local file sig
-    lh.set([20,0],4); // version needed
-    lh.set([0,0],6); // gp bit flag
-    lh.set([0,0],8); // compression (0=store)
-    lh.set([0,0,0,0],10); // mod time/date
-    lh.set(uint32LE(crc),14);
-    lh.set(uint32LE(compSize),18);
-    lh.set(uint32LE(uncompSize),22);
-    lh.set([fname.length & 0xff, (fname.length>>8)&0xff],26);
+    const lh=new Uint8Array(30+fname.length);
+    lh.set([0x50,0x4B,0x03,0x04],0);
+    lh[4]=20;
+    lh[26]=fname.length;
+    lh[27]=0;
+    lh.set(u32(crc),14);
+    lh.set(u32(data.length),18);
+    lh.set(u32(data.length),22);
     lh.set(fname,30);
 
-    localParts.push({lh, data});
-    offset += lh.length + data.length;
+    local.push(lh,data);
 
-    // central directory header
-    const ch = new Uint8Array(46 + fname.length);
-    ch.set([0x50,0x4b,0x01,0x02],0);
-    ch.set([20,0],4); ch.set([20,0],6);
-    ch.set([0,0],8); ch.set([0,0],10);
-    ch.set([0,0,0,0],12);
-    ch.set(uint32LE(crc),16);
-    ch.set(uint32LE(compSize),20);
-    ch.set(uint32LE(uncompSize),24);
-    ch.set([fname.length & 0xff, (fname.length>>8)&0xff],28);
-    ch.set([0,0,0,0],30); ch.set([0,0,0,0],32);
-    ch.set([0,0],36); ch.set([0,0,0,0],38);
-    const relOff = offset - (lh.length + data.length);
-    ch.set(uint32LE(relOff),42);
+    const ch=new Uint8Array(46+fname.length);
+    ch.set([0x50,0x4B,0x01,0x02],0);
+    ch[4]=20;
+    ch[6]=20;
+    ch[28]=fname.length;
+    ch.set(u32(crc),16);
+    ch.set(u32(data.length),20);
+    ch.set(u32(data.length),24);
+    ch.set(u32(offset),42);
     ch.set(fname,46);
 
-    centralParts.push(ch);
+    central.push(ch);
+
+    offset+=lh.length+data.length;
   }
 
-  // assemble
-  let totalLocal = 0;
-  localParts.forEach(it => totalLocal += it.lh.length + it.data.length);
-  let centralSize = 0; centralParts.forEach(c => centralSize += c.length);
-  const eocdSize = 22;
-  const out = new Uint8Array(totalLocal + centralSize + eocdSize);
-  let p = 0;
+  const csize=central.reduce((s,c)=>s+c.length,0);
+  const end=new Uint8Array(22);
+  end.set([0x50,0x4B,0x05,0x06],0);
+  const count=central.length;
+  end[8]=count; end[10]=count;
+  end.set(u32(csize),12);
+  end.set(u32(offset),16);
 
-  // local files
-  localParts.forEach(it => {
-    out.set(it.lh, p); p += it.lh.length;
-    out.set(it.data, p); p += it.data.length;
+  const total=new Uint8Array(offset+csize+22);
+  let p=0;
+
+  local.forEach(part=>{ total.set(part,p); p+=part.length; });
+  central.forEach(c=>{ total.set(c,p); p+=c.length; });
+  total.set(end,p);
+
+  return new Blob([total],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+}
+
+async function exportDocx(){
+  if(entries.length===0) return alert("No entries.");
+
+  const media=[];
+  const rmap={};
+
+  entries.forEach((e,i)=>{
+    if(e.banner){
+      const d=e.banner;
+      const b64=d.dataURL.split(",")[1];
+      const bin=atob(b64);
+      const u8=new Uint8Array(bin.length);
+      for(let k=0;k<bin.length;k++) u8[k]=bin.charCodeAt(k);
+      const name="banner"+(i+1)+".png";
+      media.push({name,data:u8,index:i});
+      rmap[i]="rId"+(i+1);
+    }
   });
 
-  const cdStart = p;
+  const docXML=buildDocXML(rmap);
 
-  // central dir
-  centralParts.forEach(c => { out.set(c, p); p += c.length; });
+  let rels="";
+  media.forEach((m,i)=>{
+    rels+=`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${m.name}"/>`;
+  });
 
-  const cdSize = p - cdStart;
+  const files={};
 
-  // EOCD
-  out.set([0x50,0x4b,0x05,0x06], p); p+=4;
-  out.set([0,0], p); p+=2; // disk numbers
-  out.set([0,0], p); p+=2;
-  const entries = centralParts.length;
-  out.set([ entries & 0xff, (entries>>8)&0xff ], p); p+=2;
-  out.set([ entries & 0xff, (entries>>8)&0xff ], p); p+=2;
-  out.set(uint32LE(cdSize), p); p+=4;
-  out.set(uint32LE(cdStart), p); p+=4;
-  out.set([0,0], p); p+=2;
+  files["[Content_Types].xml"]=
+`<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="png" ContentType="image/png"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
 
-  return out.buffer;
+  files["_rels/.rels"]=
+`<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  files["word/_rels/document.xml.rels"]=
+`<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${rels}
+</Relationships>`;
+
+  files["word/document.xml"]=docXML;
+
+  media.forEach(m=>{
+    files[`word/media/${m.name}`]=m.data;
+  });
+
+  const blob=buildZip(files);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="current_affairs.docx"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 
-/* ---------- Build DOCX blob and trigger download ---------- */
-function generateDocxBlob(){
-  const docXml = buildDocumentXml();
-  const files = {
-    "[Content_Types].xml": contentTypesXml,
-    "_rels/.rels": relsRelsXml,
-    "word/_rels/document.xml.rels": docRelsXml,
-    "word/document.xml": docXml
-  };
-  const zipBuf = makeZipBuffer(files);
-  return new Blob([zipBuf], {type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
-}
-
-document.getElementById('exportBtn').addEventListener('click', ()=>{
-  if(questions.length===0){ alert('पहले कम से कम एक प्रश्न जोड़ो'); return; }
-  const blob = generateDocxBlob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'mcq_export_tables.docx';
-  a.click();
-  setTimeout(()=> URL.revokeObjectURL(url), 5000);
-});
 </script>
 </body>
 </html>
